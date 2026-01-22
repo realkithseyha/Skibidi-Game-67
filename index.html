@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+    <!-- iOS Web App Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Skibidi 67">
+
+    <title>Skibidi Game 67</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- VARIABLES --- */
+        :root {
+            --primary: #FFD60A;
+            --white: #FFFFFF;
+            --bg-overlay: rgba(0, 0, 0, 0.6);
+            --card-bg: rgba(28, 28, 30, 0.85);
+            --border-color: rgba(255, 255, 255, 0.15);
+
+            /* Spacing */
+            --safe-top: env(safe-area-inset-top, 24px);
+            --safe-bottom: env(safe-area-inset-bottom, 24px);
+            --btn-radius: 16px;
+        }
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none; -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #000;
+            color: var(--white);
+            height: 100vh; height: 100dvh; width: 100vw;
+            overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+
+        /* --- BACKGROUND --- */
+        #bgContainer {
+            position: absolute; inset: 0; z-index: 0;
+            transition: opacity 0.5s;
+        }
+        .bg-layer {
+            position: absolute; inset: 0;
+            background-size: cover; background-position: center;
+            opacity: 0; transition: opacity 0.5s ease;
+        }
+        .bg-layer.active { opacity: 1; }
+
+        .overlay {
+            position: absolute; inset: 0; z-index: 1;
+            background: var(--bg-overlay);
+            /* backdrop-filter: blur(10px); Removed blur for sharp background */
+        }
+
+        /* --- LAYOUT CONTAINER --- */
+        .app-view {
+            position: relative; z-index: 10;
+            flex: 1; display: flex; flex-direction: column;
+            padding-top: var(--safe-top);
+            padding-bottom: var(--safe-bottom);
+        }
+
+        /* --- TOP HEADER (Simple Mode) --- */
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 24px;
+            width: 100%; height: 60px;
+            background: transparent;
+        }
+
+        .header-item {
+            display: flex; flex-direction: column; justify-content: center;
+        }
+
+        .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.6); font-weight: 600; }
+        .value { font-size: 20px; font-weight: 700; color: #fff; line-height: 1.2; }
+
+        .btn-icon {
+            width: 44px; height: 44px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            display: grid; place-items: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-icon:active { background: rgba(255,255,255,0.25); }
+        .btn-icon svg { width: 24px; height: 24px; fill: white; }
+
+        /* --- SCREENS --- */
+        .screen {
+            flex: 1; display: flex; flex-direction: column;
+            padding: 20px 24px;
+            opacity: 0; pointer-events: none; position: absolute; inset: 0; top: 60px; /* Below header */
+            transition: opacity 0.3s ease;
+        }
+        .screen.active { opacity: 1; pointer-events: all; position: relative; top: 0; }
+
+        /* --- GAMEPLAY AREA --- */
+        .game-area {
+            flex: 1; display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .equation-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 40px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: auto; /* Pushes to top */
+            margin-top: 20px;
+        }
+
+        .equation-text {
+            font-size: 64px; font-weight: 300; letter-spacing: -2px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* --- BUTTONS GRID --- */
+        .controls-area {
+            width: 100%;
+            padding-bottom: 10px;
+        }
+
+        .grid-2x2 {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+        }
+
+        .game-btn {
+            height: 80px;
+            background: rgba(44, 44, 46, 0.9);
+            border: 1px solid var(--border-color);
+            border-radius: var(--btn-radius);
+            font-size: 32px; font-weight: 500; color: #fff;
+            display: grid; place-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: transform 0.1s, background 0.1s;
+        }
+        .game-btn:active { transform: scale(0.96); background: rgba(80, 80, 80, 0.9); }
+
+        .game-btn.correct { background: #32D74B; color: #000; border-color: #32D74B; }
+        .game-btn.wrong { background: #FF453A; color: #fff; border-color: #FF453A; animation: shake 0.4s; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+
+        /* --- MENU STYLE --- */
+        .menu-content {
+            flex: 1; display: flex; flex-direction: column; justify-content: center;
+            max-width: 400px; width: 100%; margin: 0 auto;
+        }
+
+        .title {
+            font-size: 42px; font-weight: 800; text-align: center; margin-bottom: 40px;
+            letter-spacing: -1px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 24px;
+            display: flex; flex-direction: column; gap: 16px;
+        }
+
+        .section-label { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.5); text-transform: uppercase; }
+
+        .diff-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+        .diff-btn {
+            padding: 12px; border-radius: 12px;
+            background: rgba(255,255,255,0.05); border: 1px solid transparent;
+            color: rgba(255,255,255,0.6); font-size: 14px; font-weight: 600;
+            text-align: center; cursor: pointer;
+        }
+        .diff-btn.active { background: var(--white); color: #000; }
+
+        .action-btn {
+            width: 100%; padding: 18px;
+            background: var(--primary); color: #000;
+            font-size: 18px; font-weight: 700;
+            border: none; border-radius: 16px;
+            cursor: pointer; margin-top: 10px;
+        }
+        .action-btn:active { filter: brightness(0.9); transform: scale(0.98); }
+
+        /* --- TIMER BAR --- */
+        .timer-container {
+            width: 100%; height: 6px; background: rgba(255,255,255,0.1);
+            border-radius: 3px; overflow: hidden; margin-top: 10px;
+        }
+        .timer-fill {
+            height: 100%; background: var(--primary); width: 100%;
+            transform-origin: left; transition: transform 0.1s linear;
+        }
+
+        /* --- MODAL --- */
+        .modal-bg {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s;
+        }
+        .modal-bg.visible { opacity: 1; pointer-events: all; }
+
+        .modal-box {
+            background: #1c1c1e; width: 85%; max-width: 320px;
+            border-radius: 24px; padding: 30px 24px;
+            text-align: center; border: 1px solid var(--border-color);
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- BACKGROUNDS -->
+    <div id="bgContainer"></div>
+    <div class="overlay"></div>
+
+    <div class="app-view">
+
+        <!-- HEADER (Visible in Game) -->
+        <div class="top-bar" id="topBar" style="display: none;">
+            <div class="header-item">
+                <span class="label">Score</span>
+                <span class="value" id="hudScore">0</span>
+            </div>
+
+            <!-- Timer Bar placed in center -->
+            <div style="flex: 1; margin: 0 20px;">
+                <div class="timer-container">
+                    <div class="timer-fill" id="timerBar"></div>
+                </div>
+            </div>
+
+            <button class="btn-icon" onclick="game.pauseGame()">
+                <svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            </button>
+        </div>
+
+        <!-- HEADER (Visible in Menu) -->
+        <div class="top-bar" id="menuBar">
+            <div class="header-item">
+                <span class="label">High Score</span>
+                <span class="value" id="highScoreVal">0</span>
+            </div>
+            <button class="btn-icon" onclick="game.cycleTheme()">
+                <svg viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+            </button>
+        </div>
+
+        <!-- SCREEN: MENU -->
+        <div id="menuScreen" class="screen active">
+            <div class="menu-content">
+                <h1 class="title">Skibidi Game 67</h1>
+
+                <div class="card">
+                    <div>
+                        <div class="section-label" style="margin-bottom: 8px;">Select Difficulty</div>
+                        <div class="diff-grid">
+                            <div class="diff-btn active" onclick="game.setDiff('easy', this)">Easy</div>
+                            <div class="diff-btn" onclick="game.setDiff('medium', this)">Medium</div>
+                            <div class="diff-btn" onclick="game.setDiff('hard', this)">Hard</div>
+                        </div>
+                    </div>
+
+                    <button class="action-btn" onclick="game.startGame()">Play Now</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN: GAME -->
+        <div id="gameScreen" class="screen">
+            <div class="game-area">
+                <div class="equation-box">
+                    <div class="section-label">Solve</div>
+                    <div class="equation-text" id="equation">0 + 0</div>
+                </div>
+            </div>
+
+            <div class="controls-area">
+                <div class="grid-2x2" id="numpad">
+                    <!-- JS Injects Buttons Here -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODAL (Pause/Game Over) -->
+    <div class="modal-bg" id="modal">
+        <div class="modal-box">
+            <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 8px;" id="modalTitle">Paused</h2>
+            <p style="color: rgba(255,255,255,0.6); margin-bottom: 24px;" id="modalSub">Game paused</p>
+
+            <div id="modalStats" style="display: none; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 12px;">
+                    <div class="section-label">Score</div>
+                    <div style="font-size: 20px; font-weight: 700;" id="finalScore">0</div>
+                </div>
+                <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 12px;">
+                    <div class="section-label">Streak</div>
+                    <div style="font-size: 20px; font-weight: 700;" id="finalStreak">0</div>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button class="action-btn" id="modalBtnMain" onclick="game.resumeGame()">Resume</button>
+                <button class="diff-btn" style="width: 100%; border: 1px solid rgba(255, 69, 58, 0.3); color: #FF453A;" onclick="game.toMenu()">Exit</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class SimpleGame {
+            constructor() {
+                this.state = {
+                    score: 0, time: 60, maxTime: 60,
+                    streak: 0, difficulty: 'easy',
+                    active: false, paused: false
+                };
+
+                this.themes = [
+                    "https://m.media-amazon.com/images/I/61t4g4RYloL._AC_UF1000,1000_QL80_.jpg",
+                    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTWMu5YynF8XlEkFilQRxI5d-NPkzzIUIlPHAQlP9d8tg&s=10",
+                    "https://stringart.lv/cdn/shop/files/product_12925_68348a339f0223.48585529.jpg?v=1755162308&width=1423"
+                ];
+
+                this.dom = {
+                    bg: document.getElementById('bgContainer'),
+                    menuScreen: document.getElementById('menuScreen'),
+                    gameScreen: document.getElementById('gameScreen'),
+                    topBar: document.getElementById('topBar'),
+                    menuBar: document.getElementById('menuBar'),
+                    score: document.getElementById('hudScore'),
+                    timer: document.getElementById('timerBar'),
+                    modal: {
+                        el: document.getElementById('modal'),
+                        title: document.getElementById('modalTitle'),
+                        sub: document.getElementById('modalSub'),
+                        stats: document.getElementById('modalStats'),
+                        btn: document.getElementById('modalBtnMain')
+                    }
+                };
+
+                this.highScore = parseInt(localStorage.getItem('simple_pro_hs')) || 0;
+                document.getElementById('highScoreVal').innerText = this.highScore;
+
+                this.initBackgrounds();
+                this.cycleTheme(0);
+            }
+
+            initBackgrounds() {
+                this.dom.bg.innerHTML = this.themes.map((url, i) => 
+                    `<div class="bg-layer" id="bg-${i}" style="background-image: url('${url}')"></div>`
+                ).join('');
+                this.currentTheme = -1;
+            }
+
+            cycleTheme(forceIndex) {
+                if (forceIndex !== undefined) this.currentTheme = forceIndex;
+                else this.currentTheme = (this.currentTheme + 1) % this.themes.length;
+
+                document.querySelectorAll('.bg-layer').forEach(el => el.classList.remove('active'));
+                document.getElementById(`bg-${this.currentTheme}`).classList.add('active');
+                if (navigator.vibrate) navigator.vibrate(10);
+            }
+
+            setDiff(level, el) {
+                this.state.difficulty = level;
+                document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+                el.classList.add('active');
+                if (navigator.vibrate) navigator.vibrate(10);
+            }
+
+            startGame() {
+                this.state.score = 0;
+                this.state.time = 60;
+                this.state.streak = 0;
+                this.state.active = true;
+                this.state.paused = false;
+
+                this.dom.menuScreen.classList.remove('active');
+                this.dom.gameScreen.classList.add('active');
+                this.dom.menuBar.style.display = 'none';
+                this.dom.topBar.style.display = 'flex';
+
+                this.dom.score.innerText = 0;
+                this.updateTimer();
+                this.nextRound();
+
+                this.loop = setInterval(() => this.tick(), 100);
+            }
+
+            toMenu() {
+                clearInterval(this.loop);
+                this.state.active = false;
+                this.dom.modal.el.classList.remove('visible');
+                this.dom.gameScreen.classList.remove('active');
+                this.dom.menuScreen.classList.add('active');
+                this.dom.topBar.style.display = 'none';
+                this.dom.menuBar.style.display = 'flex';
+            }
+
+            pauseGame() {
+                this.state.paused = true;
+                this.dom.modal.title.innerText = "Paused";
+                this.dom.modal.sub.innerText = "Game is paused";
+                this.dom.modal.stats.style.display = "none";
+                this.dom.modal.btn.innerText = "Resume";
+                this.dom.modal.btn.onclick = () => this.resumeGame();
+                this.dom.modal.el.classList.add('visible');
+            }
+
+            resumeGame() {
+                this.state.paused = false;
+                this.dom.modal.el.classList.remove('visible');
+            }
+
+            gameOver() {
+                clearInterval(this.loop);
+                if(this.state.score > this.highScore) {
+                    this.highScore = this.state.score;
+                    localStorage.setItem('simple_pro_hs', this.highScore);
+                    document.getElementById('highScoreVal').innerText = this.highScore;
+                }
+
+                this.dom.modal.title.innerText = "Finished";
+                this.dom.modal.sub.innerText = "Session complete";
+                this.dom.modal.stats.style.display = "grid";
+                document.getElementById('finalScore').innerText = this.state.score;
+                document.getElementById('finalStreak').innerText = this.state.streak;
+
+                this.dom.modal.btn.innerText = "Play Again";
+                this.dom.modal.btn.onclick = () => {
+                    this.dom.modal.el.classList.remove('visible');
+                    this.startGame();
+                };
+                this.dom.modal.el.classList.add('visible');
+                if(navigator.vibrate) navigator.vibrate([50, 50]);
+            }
+
+            tick() {
+                if(this.state.paused) return;
+                this.state.time -= 0.1;
+                this.updateTimer();
+                if(this.state.time <= 0) this.gameOver();
+            }
+
+            updateTimer() {
+                const pct = (this.state.time / this.state.maxTime) * 100;
+                this.dom.timer.style.transform = `scaleX(${pct/100})`;
+                if(this.state.time < 10) this.dom.timer.style.backgroundColor = '#FF453A';
+                else this.dom.timer.style.backgroundColor = '#FFD60A';
+            }
+
+            nextRound() {
+                let max = 20;
+                if(this.state.difficulty === 'medium') max = 50;
+                if(this.state.difficulty === 'hard') max = 100;
+
+                const ops = ['+'];
+                if(this.state.difficulty !== 'easy') ops.push('-');
+                if(this.state.difficulty === 'hard') ops.push('×');
+
+                const op = ops[Math.floor(Math.random() * ops.length)];
+                let n1 = Math.floor(Math.random() * max) + 1;
+                let n2 = Math.floor(Math.random() * max) + 1;
+
+                if(op === '-') { if(n1 < n2) [n1, n2] = [n2, n1]; }
+                if(op === '×') { n1 = Math.floor(Math.random() * 12)+1; n2 = Math.floor(Math.random() * 12)+1; }
+
+                this.correct = eval(`${n1} ${op === '×' ? '*' : op} ${n2}`);
+                document.getElementById('equation').innerText = `${n1} ${op} ${n2}`;
+
+                let choices = new Set([this.correct]);
+                while(choices.size < 4) {
+                    let dev = Math.floor(Math.random() * 10) + 1;
+                    if(Math.random() > 0.5) dev *= -1;
+                    let val = this.correct + dev;
+                    if(val >= 0) choices.add(val);
+                }
+
+                const pad = document.getElementById('numpad');
+                pad.innerHTML = '';
+                Array.from(choices).sort(()=>Math.random()-0.5).forEach(num => {
+                    const btn = document.createElement('div');
+                    btn.className = 'game-btn';
+                    btn.innerText = num;
+
+                    const handle = () => this.handleInput(num, btn);
+                    btn.addEventListener('touchstart', (e)=>{ e.preventDefault(); handle(); });
+                    btn.addEventListener('mousedown', handle);
+                    pad.appendChild(btn);
+                });
+            }
+
+            handleInput(val, btn) {
+                if(this.state.processing) return;
+                this.state.processing = true;
+
+                if(navigator.vibrate) navigator.vibrate(15);
+
+                if(val === this.correct) {
+                    btn.classList.add('correct');
+                    this.state.score += 10 + this.state.streak;
+                    this.state.streak++;
+                    this.state.time = Math.min(this.state.maxTime, this.state.time + 1);
+                    this.dom.score.innerText = this.state.score;
+
+                    setTimeout(() => {
+                        this.state.processing = false;
+                        this.nextRound();
+                    }, 50);
+                } else {
+                    btn.classList.add('wrong');
+                    this.state.streak = 0;
+                    this.state.time -= 3;
+                    if(navigator.vibrate) navigator.vibrate(200);
+
+                    setTimeout(() => {
+                        this.state.processing = false;
+                        this.nextRound();
+                    }, 600);
+                }
+            }
+        }
+
+        const game = new SimpleGame();
+    </script>
+</body>
+</html>
+
